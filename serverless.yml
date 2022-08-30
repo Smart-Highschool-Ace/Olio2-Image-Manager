@@ -1,0 +1,41 @@
+service: olio-image-upload
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: ap-northeast-2
+  stage: dev
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "s3:*"
+          Resource: "arn:aws:s3:::olio-image/*"
+
+resources:
+  Resources:
+    UploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: olio-image
+        AccessControl: PublicRead
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - POST
+              AllowedOrigins:
+                - "*"
+              AllowedHeaders:
+                - "*"
+functions:
+  image_upload:
+    handler: handler.upload
+    events:
+      - http:
+          path: image
+          method: post
+          cors: true
+
+plugins:
+  - serverless-plugin-typescript
