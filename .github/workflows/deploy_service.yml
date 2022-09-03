@@ -1,0 +1,27 @@
+name: Deploy To Lambda for Service
+
+# Controls when the action will run.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Create env file
+        run: |
+          cat > .env << EOF
+          ${{ secrets.ENV }}
+          EOF
+          
+      - name: Install yarn packages
+        run: yarn install
+
+      - name: Deploy using Serverless
+        uses: serverless/github-action@master
+        with:
+          args: deploy
