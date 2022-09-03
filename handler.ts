@@ -3,13 +3,16 @@ import { S3 } from "aws-sdk";
 
 const BUCKET_NAME = process.env.AWS_BUCKET_NAME || "olio-image";
 
+export const generateRandomString: Function = () =>
+  [...Array(16)].map((_) => (~~(Math.random() * 36)).toString(36)).join("");
+
 export const getImage = async (key: string) => {
   try {
-    const file =  new S3({
-        accessKeyId: process.env.AWS_S3_BUCKET_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_S3_BUCKET_ACCESS_KEY_SECRET,
-        params: { Bucket: BUCKET_NAME },
-      })
+    const file = new S3({
+      accessKeyId: process.env.AWS_S3_BUCKET_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_S3_BUCKET_ACCESS_KEY_SECRET,
+      params: { Bucket: BUCKET_NAME },
+    })
       .getObject({
         Bucket: BUCKET_NAME,
         Key: key,
@@ -22,36 +25,35 @@ export const getImage = async (key: string) => {
   }
 };
 
-export const uploadToS3: Function = ({
+export const uploadToS3: Function = async ({
   key,
   type,
 }: {
   key: string;
   type: string;
-}): string => {
+}): Promise<{ url: string; key: string }> => {
   // 올해 년도로 폴더 지정
   const today = new Date();
   const year = String(today.getFullYear());
 
   // 랜덤 키를 사용하여 파일 이름 생성
 
-  let key: string = generateRandomString();
+  let name: string = generateRandomString();
 
-  while (await getImage(key)) {
-    key = generateRandomString();
+  while (await getImage(name)) {
+    name = generateRandomString();
   }
-  
-  
+
   const s3Params = {
     Bucket: BUCKET_NAME,
     Key: `${year}/${key}`,
     ContentType: type,
     ACL: "public-read",
   };
-  
+
   const s3 = new S3();
   const url = s3.getSignedUrl("putObject", s3Params);
-  return { url, Key };
+  return { url, key };
 };
 
 export type APIFunction = (event: Event) => Promise<ReturnResHTTPData>;
@@ -121,12 +123,12 @@ export const createRes = ({
 };
 
 export const upload: APIFunction = (event) =>
-  eventPipe(event, (event: Event) => {
+  eventPipe(event, async (event: Event) => {
     var params = JSON.parse(event.body || "{}");
-    const { url, Key } = uploadToS3({
+    const { url, key } = await uploadToS3({
       key: params.name,
       type: params.type,
     });
 
-    return createRes({ data: { url: uploadURL, key : Key } });
+    return createRes({ data: { url, key } });
   });
