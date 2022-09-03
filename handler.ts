@@ -1,6 +1,27 @@
 import { APIGatewayEvent } from "aws-lambda";
 import { S3 } from "aws-sdk";
 
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME || "olio-image";
+
+export const getImage = async (key: string) => {
+  try {
+    const file =  new S3({
+        accessKeyId: process.env.ACCESS_KEY_ID,
+        secretAccessKey: process.env.SECRET_ACCESS_KEY,
+        params: { Bucket: BUCKET_NAME },
+      })
+      .getObject({
+        Bucket: BUCKET_NAME,
+        Key: key,
+      })
+      .promise();
+
+    return await file;
+  } catch {
+    return;
+  }
+};
+
 export const uploadToS3: Function = ({
   key,
   type,
@@ -8,15 +29,29 @@ export const uploadToS3: Function = ({
   key: string;
   type: string;
 }): string => {
+  // 올해 년도로 폴더 지정
+  const today = new Date();
+  const year = String(today.getFullYear());
+
+  // 랜덤 키를 사용하여 파일 이름 생성
+
+  let key: string = generateRandomString();
+
+  while (await getImage(key)) {
+    key = generateRandomString();
+  }
+  
+  
   const s3Params = {
-    Bucket: "olio-image",
-    Key: key,
+    Bucket: BUCKET_NAME,
+    Key: `${year}/${key}`,
     ContentType: type,
     ACL: "public-read",
   };
+  
   const s3 = new S3();
   const url = s3.getSignedUrl("putObject", s3Params);
-  return url;
+  return { url, Key };
 };
 
 export type APIFunction = (event: Event) => Promise<ReturnResHTTPData>;
@@ -88,10 +123,10 @@ export const createRes = ({
 export const upload: APIFunction = (event) =>
   eventPipe(event, (event: Event) => {
     var params = JSON.parse(event.body || "{}");
-    const uploadURL = uploadToS3({
+    const { url, Key } = uploadToS3({
       key: params.name,
       type: params.type,
     });
 
-    return createRes({ data: { url: uploadURL } });
+    return createRes({ data: { url: uploadURL, key : Key } });
   });
