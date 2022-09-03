@@ -6,8 +6,8 @@ const BUCKET_NAME = process.env.AWS_BUCKET_NAME || "olio-image";
 export const getImage = async (key: string) => {
   try {
     const file =  new S3({
-        accessKeyId: process.env.ACCESS_KEY_ID,
-        secretAccessKey: process.env.SECRET_ACCESS_KEY,
+        accessKeyId: process.env.AWS_S3_BUCKET_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_S3_BUCKET_ACCESS_KEY_SECRET,
         params: { Bucket: BUCKET_NAME },
       })
       .getObject({
