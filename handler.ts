@@ -53,7 +53,7 @@ export const uploadToS3: Function = async ({
 
   const s3 = new S3();
   const url = s3.getSignedUrl("putObject", s3Params);
-  return { url, name };
+  return { url, key : name };
 };
 
 export type APIFunction = (event: Event) => Promise<ReturnResHTTPData>;
