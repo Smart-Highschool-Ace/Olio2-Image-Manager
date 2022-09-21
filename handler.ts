@@ -26,7 +26,7 @@ export const getImage = async (key: string) => {
 };
 
 export const uploadToS3: Function = async ({
-  key,
+  _,
   type,
 }: {
   key: string;
@@ -46,14 +46,14 @@ export const uploadToS3: Function = async ({
 
   const s3Params = {
     Bucket: BUCKET_NAME,
-    Key: `${year}/${key}`,
+    Key: `${year}/${name}`,
     ContentType: type,
     ACL: "public-read",
   };
 
   const s3 = new S3();
   const url = s3.getSignedUrl("putObject", s3Params);
-  return { url, key };
+  return { url, name };
 };
 
 export type APIFunction = (event: Event) => Promise<ReturnResHTTPData>;
